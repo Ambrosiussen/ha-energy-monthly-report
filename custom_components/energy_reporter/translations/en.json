@@ -1,0 +1,40 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Energy Reporter",
+        "description": "Configure your energy meter sensors and electricity tariff.",
+        "data": {
+          "report_name":  "Report name",
+          "sensors":      "Energy sensors (kWh)",
+          "rate_eur_kwh": "Electricity rate (€/kWh)",
+          "email":        "Email address (optional)",
+          "notify_service": "Notify service (e.g. notify.smtp)"
+        }
+      }
+    },
+    "error": {
+      "no_sensors": "Please select at least one energy sensor."
+    },
+    "abort": {
+      "already_configured": "This report configuration is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update Energy Reporter",
+        "data": {
+          "report_name":  "Report name",
+          "sensors":      "Energy sensors (kWh)",
+          "rate_eur_kwh": "Electricity rate (€/kWh)",
+          "email":        "Email address (optional)",
+          "notify_service": "Notify service (e.g. notify.smtp)"
+        }
+      }
+    },
+    "error": {
+      "no_sensors": "Please select at least one energy sensor."
+    }
+  }
+}

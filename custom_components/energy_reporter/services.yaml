@@ -1,0 +1,7 @@
+generate_report:
+  name: Generate Report
+  description: Manually trigger generation of the monthly energy report for the previous calendar month.
+
+generate_report_current_month:
+  name: Generate Report (Current Month)
+  description: Generate an energy report for the current (partial) month. Useful for testing.

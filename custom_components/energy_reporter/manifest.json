@@ -1,0 +1,16 @@
+{
+  "domain": "energy_reporter",
+  "name": "Energy Reporter",
+  "version": "1.2.1",
+  "documentation": "https://github.com/Ambrosiussen/ha-energy-reporter",
+  "issue_tracker": "https://github.com/Ambrosiussen/ha-energy-reporter/issues",
+  "codeowners": ["@Ambrosiussen"],
+  "requirements": [
+    "reportlab>=4.0.0",
+    "python-dateutil>=2.8.0"
+  ],
+  "dependencies": [],
+  "after_dependencies": ["recorder"],
+  "iot_class": "local_polling",
+  "config_flow": true
+}
