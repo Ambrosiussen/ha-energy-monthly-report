@@ -1,9 +1,9 @@
 {
   "domain": "energy_reporter",
   "name": "Energy Reporter",
-  "version": "1.2.1",
-  "documentation": "https://github.com/Ambrosiussen/ha-energy-reporter",
-  "issue_tracker": "https://github.com/Ambrosiussen/ha-energy-reporter/issues",
+  "version": "1.0.0",
+  "documentation": "https://github.com/Ambrosiussen/ha-energy-monthly-report",
+  "issue_tracker": "https://github.com/Ambrosiussen/ha-energy-monthly-report/issues",
   "codeowners": ["@Ambrosiussen"],
   "requirements": [
     "reportlab>=4.0.0",
