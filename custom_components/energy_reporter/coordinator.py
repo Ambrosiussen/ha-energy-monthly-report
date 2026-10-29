@@ -11,9 +11,16 @@ from homeassistant.components.recorder import get_instance
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_RATE, CONF_REPORT_NAME, CONF_SENSORS, DOMAIN, OUTPUT_DIR
+from .const import CONF_RATE, CONF_REPORT_NAME, CONF_SENSORS, DOMAIN, REPORT_SUBDIR
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def report_location(hass: HomeAssistant) -> tuple[str, str]:
+    """Return (media source dir id, absolute path) of the report folder."""
+    media_dirs = hass.config.media_dirs
+    source_dir_id = "local" if "local" in media_dirs else next(iter(media_dirs))
+    return source_dir_id, os.path.join(media_dirs[source_dir_id], REPORT_SUBDIR)
 
 
 def _previous_month_bounds() -> tuple[datetime, datetime]:
@@ -125,14 +132,15 @@ async def generate_report(
     sensor_results = await get_instance(hass).async_add_executor_job(_fetch_all)
 
     # Build PDF — import reportlab lazily inside executor to avoid blocking I/O
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    source_dir_id, output_dir = report_location(hass)
     filename = f"energy_report_{month_label}.pdf"
-    output_path = os.path.join(OUTPUT_DIR, filename)
+    output_path = os.path.join(output_dir, filename)
     report_url = f"/api/energy_reporter/report/{filename}"
 
     def _build_pdf():
         from .report import generate_pdf
 
+        os.makedirs(output_dir, exist_ok=True)
         generate_pdf(output_path, report_name, start, sensor_results, rate)
 
     await hass.async_add_executor_job(_build_pdf)
@@ -149,6 +157,10 @@ async def generate_report(
 
     return {
         "path": output_path,
+        "filename": filename,
+        "media_content_id": (
+            f"media-source://media_source/{source_dir_id}/{REPORT_SUBDIR}/{filename}"
+        ),
         "url": report_url,
         "month": month_label,
         "total_kwh": grand_kwh,

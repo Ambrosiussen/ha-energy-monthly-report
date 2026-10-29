@@ -8,8 +8,8 @@
           "report_name":   "Report name",
           "sensors":       "Energy sensors (kWh)",
           "rate_eur_kwh":  "Electricity rate (€/kWh)",
-          "email":         "Email address (optional)",
-          "notify_service": "Notify service (e.g. notify.smtp)"
+          "email":         "Email address (only for a legacy notify action)",
+          "notify_service": "Notify entity (e.g. notify.smtp_you_example_com)"
         }
       }
     },
@@ -28,8 +28,8 @@
           "report_name":  "Report name",
           "sensors":      "Energy sensors (kWh)",
           "rate_eur_kwh": "Electricity rate (€/kWh)",
-          "email":        "Email address (optional)",
-          "notify_service": "Notify service (e.g. notify.smtp)"
+          "email":        "Email address (only for a legacy notify action)",
+          "notify_service": "Notify entity (e.g. notify.smtp_you_example_com)"
         }
       }
     },

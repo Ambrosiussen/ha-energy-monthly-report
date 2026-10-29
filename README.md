@@ -15,7 +15,7 @@ A Home Assistant custom integration that automatically generates professional mo
 - **Current month support** — generate a partial report for the month in progress
 - **Per-sensor daily breakdown** — tracks each energy meter with daily kWh consumption and cost
 - **Configurable electricity tariff** — set your rate in €/kWh
-- **Email delivery** — optionally send the PDF report via any HA notify service (e.g. SMTP)
+- **Email delivery** — optionally send the PDF report as an attachment via an SMTP notify entity
 - **Sensor entity** — exposes report metadata (total kWh, cost, month, download URL) for use in automations
 - **Persistent notifications** — get a summary with a clickable download link in HA
 - **Beautiful PDF layout** — styled with KPI cards, daily tables, and a combined summary for multiple meters
@@ -55,10 +55,12 @@ A Home Assistant custom integration that automatically generates professional mo
 | **Report name** | Label shown in the PDF header (e.g. "Office Energy") |
 | **Energy sensors** | One or more energy sensors to include in the report |
 | **Electricity rate** | Your tariff in €/kWh (default: 0.301648) |
-| **Email** *(optional)* | Recipient email address for automatic delivery |
-| **Notify service** *(optional)* | HA notify service for email (e.g. `notify.smtp`) |
+| **Notify entity** *(optional)* | Notify entity to send the report to (e.g. `notify.smtp_you_example_com`) |
+| **Email** *(optional)* | Recipient address; only needed with a legacy notify action (e.g. `notify.smtp`) |
 
 All settings can be changed later via **Configure** on the integration card.
+
+With an SMTP notify entity (one per recipient, under **Settings** → **Devices & Services** → **SMTP**) the PDF is attached via `smtp.send_message`. Any other notify entity gets the summary text only. Legacy SMTP notify actions such as `notify.smtp` still work but stop in Home Assistant 2027.3.
 
 ## Usage
 
@@ -82,13 +84,15 @@ data: {}
 
 ### Accessing Reports
 
-Generated PDFs are saved to `/config/www/reports/` and can be accessed at:
+Generated PDFs are saved to `energy_reports/` in your media folder (`/media/energy_reports/` on Home Assistant OS). You can open them under **Media** → **My media**, or download one (logged in) at:
 
 ```
-https://your-ha-instance/local/reports/energy_report_YYYY-MM.pdf
+https://your-ha-instance/api/energy_reporter/report/energy_report_YYYY-MM.pdf
 ```
 
 A direct download link is also included in the persistent notification after each report.
+
+Before 1.3.0, reports were saved to `/config/www/reports/`, which Home Assistant serves to anyone under `/local/`. The download link still finds those old files; delete them once you don't need them.
 
 ### Sensor Entity
 
@@ -113,8 +117,9 @@ Use these in automations, dashboards, or template sensors.
 - The sensor must have been recording for at least a few hours to have statistics data
 
 **No email received:**
-- Ensure both **Email** and **Notify service** are configured in the integration options
-- Test the notify service independently first (e.g. `notify.smtp`)
+- Ensure **Notify entity** is set in the integration options (plus **Email** for a legacy notify action)
+- Test the entity independently first with `smtp.send_message`
+- Check the log for `[energy_reporter] Failed to email report`
 
 ## License
 

@@ -10,6 +10,7 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.network import get_url
 import homeassistant.helpers.config_validation as cv
@@ -18,7 +19,7 @@ from .const import (
     CONF_EMAIL,
     CONF_NOTIFY_SERVICE,
     DOMAIN,
-    OUTPUT_DIR,
+    LEGACY_OUTPUT_DIR,
     SERVICE_GENERATE,
     SERVICE_GENERATE_CURRENT,
 )
@@ -35,14 +36,18 @@ class ReportDownloadView(HomeAssistantView):
     name = "api:energy_reporter:report"
     requires_auth = True
 
+    def __init__(self, report_dirs: list[str]) -> None:
+        self._report_dirs = report_dirs
+
     async def get(self, request: web.Request, filename: str) -> web.StreamResponse:
         # Prevent path traversal
         if ".." in filename or "/" in filename or "\\" in filename:
             return web.Response(status=403)
-        filepath = os.path.join(OUTPUT_DIR, filename)
-        if not os.path.isfile(filepath):
-            return web.Response(status=404, text="Report not found")
-        return web.FileResponse(filepath)
+        for report_dir in self._report_dirs:
+            filepath = os.path.join(report_dir, filename)
+            if os.path.isfile(filepath):
+                return web.FileResponse(filepath)
+        return web.Response(status=404, text="Report not found")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -52,7 +57,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register the download view once
     if "view_registered" not in hass.data[DOMAIN]:
-        hass.http.register_view(ReportDownloadView)
+        from .coordinator import report_location
+
+        hass.http.register_view(
+            ReportDownloadView([report_location(hass)[1], LEGACY_OUTPUT_DIR])
+        )
         hass.data[DOMAIN]["view_registered"] = True
 
     # Forward to sensor platform
@@ -140,38 +149,78 @@ async def _run_report(
     data = {**entry.data, **entry.options}
     email = data.get(CONF_EMAIL, "").strip()
     notify_service = data.get(CONF_NOTIFY_SERVICE, "").strip()
-    if email and notify_service:
+    if notify_service:
         await _send_email(hass, notify_service, email, result)
 
 
 async def _send_email(
     hass: HomeAssistant, notify_service: str, email: str, result: dict
 ) -> None:
-    """Send the report PDF as an email attachment via a notify service."""
-    # notify_service should be like "notify.smtp" — split into domain + service
-    parts = notify_service.split(".", 1)
-    if len(parts) != 2:
-        _LOGGER.error("[energy_reporter] Invalid notify service: %s", notify_service)
-        return
-    domain, service = parts
+    """Send the report PDF via a notify entity, or a legacy notify action."""
+    title = f"Energy Report — {result['month']}"
+    message = (
+        f"Energy report for {result['month']} is ready.\n\n"
+        f"Total: {result['total_kwh']:.2f} kWh\n"
+        f"Cost: € {result['total_cost']:.2f}"
+    )
+    entity = er.async_get(hass).async_get(notify_service)
     try:
-        await hass.services.async_call(
-            domain,
-            service,
-            {
-                "message": (
-                    f"Energy report for {result['month']} is ready.\n\n"
-                    f"Total: {result['total_kwh']:.2f} kWh\n"
-                    f"Cost: € {result['total_cost']:.2f}"
-                ),
-                "title": f"Energy Report — {result['month']}",
-                "target": [email],
-                "data": {
-                    "images": [result["path"]],
+        if entity is not None and entity.domain == "notify":
+            if entity.platform == "smtp":
+                # The entity is the recipient; the PDF goes as a media-source attachment
+                await hass.services.async_call(
+                    "smtp",
+                    "send_message",
+                    {
+                        "title": title,
+                        "message": message,
+                        "attachments": [
+                            {
+                                "media_source": {
+                                    "media_content_id": result["media_content_id"],
+                                    "media_content_type": "application/pdf",
+                                },
+                                "filename": result["filename"],
+                            }
+                        ],
+                    },
+                    blocking=True,
+                    target={"entity_id": notify_service},
+                )
+            else:
+                # notify.send_message carries no attachments; send the summary only
+                await hass.services.async_call(
+                    "notify",
+                    "send_message",
+                    {"title": title, "message": message},
+                    blocking=True,
+                    target={"entity_id": notify_service},
+                )
+        else:
+            # Legacy notify action such as "notify.smtp" (SMTP drops these in 2027.3)
+            parts = notify_service.split(".", 1)
+            if len(parts) != 2 or not email:
+                _LOGGER.error(
+                    "[energy_reporter] %s is not a notify entity, and a legacy "
+                    "notify action needs an email address",
+                    notify_service,
+                )
+                return
+            domain, service = parts
+            await hass.services.async_call(
+                domain,
+                service,
+                {
+                    "message": message,
+                    "title": title,
+                    "target": [email],
+                    "data": {
+                        "images": [result["path"]],
+                    },
                 },
-            },
-        )
-        _LOGGER.info("[energy_reporter] Report emailed to %s via %s", email, notify_service)
+                blocking=True,
+            )
+        _LOGGER.info("[energy_reporter] Report sent via %s", notify_service)
     except Exception as exc:
         _LOGGER.error("[energy_reporter] Failed to email report: %s", exc)
 

@@ -7,11 +7,16 @@ CONF_SENSORS       = "sensors"         # list of entity_ids
 CONF_RATE          = "rate_eur_kwh"    # float, €/kWh
 CONF_REPORT_NAME   = "report_name"     # friendly name shown in PDF header
 CONF_EMAIL         = "email"           # recipient email address (optional)
-CONF_NOTIFY_SERVICE = "notify_service" # HA notify service name, e.g. "notify.smtp"
+CONF_NOTIFY_SERVICE = "notify_service" # notify entity, e.g. "notify.smtp_you_example_com"
+                                       # (a legacy action like "notify.smtp" still works)
 
 # Defaults
 DEFAULT_RATE       = 0.301648
-OUTPUT_DIR         = "/config/www/reports"
+
+# Reports live in HA's media folder: smtp.send_message can only attach
+# media-source items, and /config/www is served without auth under /local/.
+REPORT_SUBDIR      = "energy_reports"
+LEGACY_OUTPUT_DIR  = "/config/www/reports"  # before 1.3.0; still served for old links
 
 # Services
 SERVICE_GENERATE   = "generate_report"

@@ -99,7 +99,7 @@ class EnergyReporterOptionsFlow(config_entries.OptionsFlow):
             else:
                 return self.async_create_entry(title="", data=user_input)
 
-        current = self._config_entry.data
+        current = {**self._config_entry.data, **self._config_entry.options}
 
         schema = vol.Schema(
             {
