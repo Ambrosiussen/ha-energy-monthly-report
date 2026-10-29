@@ -96,7 +96,7 @@ Before 1.3.0, reports were saved to `/config/www/reports/`, which Home Assistant
 
 ### Sensor Entity
 
-The integration creates a sensor entity (`sensor.energy_reporter_last_report`) with the following attributes:
+The integration creates a sensor entity named after the report (e.g. `sensor.office_energy_last_report`). Its state is the month of the last report, kept across restarts, with the following attributes:
 
 | Attribute | Description |
 |---|---|
